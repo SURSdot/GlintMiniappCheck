@@ -92,9 +92,11 @@
     }, 5000);
 
     fetch(SERVER_URL + '/health', {
+      method: 'POST',
       headers: {
-        'X-Localtonet-Skip-Warning': 'true'
-      }
+        'Content-Type': 'text/plain' // text/plain НЕ вызывает preflight запрос OPTIONS!
+      },
+      body: 'skip-warning'
     })
       .then(response => {
         if (response.ok) { 
