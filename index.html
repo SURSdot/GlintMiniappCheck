@@ -92,21 +92,19 @@
     }, 5000);
 
     fetch(SERVER_URL + '/health', {
-      method: 'POST',
+      method: 'GET',
+      mode: 'no-cors', // Отключает проверку CORS браузером
       headers: {
-        'Content-Type': 'text/plain' // text/plain НЕ вызывает preflight запрос OPTIONS!
-      },
-      body: 'skip-warning'
+        'X-Localtonet-Skip-Warning': 'true' // Localtonet увидит его и пропустит запрос к FastAPI
+      }
     })
-      .then(response => {
-        if (response.ok) { 
-            if (!responseReceived) {
-                responseReceived = true;
-                clearTimeout(failover);
-                showSuccess();
-            }
-        } else {
-            throw new Error(`Server status: ${response.status}`);
+      .then(() => {
+        // В режиме no-cors response.ok всегда false, а статус всегда 0.
+        // Если мы попали в .then — значит сетевой ошибки нет, запрос ушел и вернулся.
+        if (!responseReceived) {
+            responseReceived = true;
+            clearTimeout(failover);
+            showSuccess();
         }
       })
       .catch(error => {
