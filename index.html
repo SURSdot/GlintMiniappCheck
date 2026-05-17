@@ -93,14 +93,15 @@
 
     fetch(SERVER_URL + '/health', {
       method: 'GET',
-      mode: 'no-cors', // Отключает проверку CORS браузером
+      mode: 'no-cors', // Отключает preflight-запрос OPTIONS и игнорирует CORS бэкенда
       headers: {
-        'X-Localtonet-Skip-Warning': 'true' // Localtonet увидит его и пропустит запрос к FastAPI
+        'localtonet-skip-warning': 'true' // Пробивает заглушку Localtonet
       }
     })
       .then(() => {
-        // В режиме no-cors response.ok всегда false, а статус всегда 0.
-        // Если мы попали в .then — значит сетевой ошибки нет, запрос ушел и вернулся.
+        // В режиме no-cors браузер не дает прочитать тело ответа, а response.ok всегда false.
+        // Но если мы попали в этот блок .then — значит, сетевой ошибки нет, 
+        // запрос успешно дошел до сервера и вернулся назад.
         if (!responseReceived) {
             responseReceived = true;
             clearTimeout(failover);
