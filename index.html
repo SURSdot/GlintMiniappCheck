@@ -41,7 +41,7 @@
   </div>
 
   <script>
-    const ZROK_URL = "https://glint.share.zrok.io";
+    const APP_URL = "https://gtqcwssuc9.localto.net ";
     const REDIRECT_DELAY_MS = 3000;
     const MIN_CHECKING_TIME_MS = 2000;
     const SERVER_URL = "http://178.91.99.9:8080";
@@ -70,7 +70,7 @@
         openBtn.focus({ preventScroll: true });
 
         setTimeout(() => {
-          window.location.href = ZROK_URL;
+          window.location.href = APP_URL;
         }, REDIRECT_DELAY_MS);
       }, remainingTime);
     };
@@ -91,9 +91,12 @@
       showError();
     }, 5000);
 
-    fetch(SERVER_URL + '/health') // <-- Убрали { mode: 'no-cors' }
+    fetch(SERVER_URL + '/health', {
+      headers: {
+        'X-Localtonet-Skip-Warning': 'true'
+      }
+    })
       .then(response => {
-        // Проверяем, вернул ли сервер успешный статус (200-299)
         if (response.ok) { 
             if (!responseReceived) {
                 responseReceived = true;
@@ -101,12 +104,10 @@
                 showSuccess();
             }
         } else {
-            // Сервер доступен, но вернул ошибку (4xx, 5xx)
             throw new Error(`Server status: ${response.status}`);
         }
       })
       .catch(error => {
-        // Ошибка сети, CORS-блокировка или выброшенная ошибка статуса
         console.error("Health check failed:", error); 
         if (!responseReceived) {
           responseReceived = true;
