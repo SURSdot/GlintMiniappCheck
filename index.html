@@ -93,19 +93,21 @@
 
     fetch(SERVER_URL + '/health', {
       method: 'GET',
-      mode: 'no-cors', // Отключает preflight-запрос OPTIONS и игнорирует CORS бэкенда
       headers: {
-        'localtonet-skip-warning': 'true' // Пробивает заглушку Localtonet
+        'localtonet-skip-warning': 'true' // Пробивает заглушку
       }
     })
-      .then(() => {
-        // В режиме no-cors браузер не дает прочитать тело ответа, а response.ok всегда false.
-        // Но если мы попали в этот блок .then — значит, сетевой ошибки нет, 
-        // запрос успешно дошел до сервера и вернулся назад.
-        if (!responseReceived) {
-            responseReceived = true;
-            clearTimeout(failover);
-            showSuccess();
+      .then(response => {
+        // Теперь мы СНОВА можем честно проверить статус ответа!
+        // Если упадет 502 от Localtonet, response.ok будет false, и мы уйдем в ошибку
+        if (response.ok) { 
+            if (!responseReceived) {
+                responseReceived = true;
+                clearTimeout(failover);
+                showSuccess();
+            }
+        } else {
+            throw new Error(`Server status: ${response.status}`);
         }
       })
       .catch(error => {
