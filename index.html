@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Проверка сервиса</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="page">
+    <div class="content">
+      <div class="logo">
+        <img src="logo.svg" alt="Logo" onerror="this.style.display='none'">
+      </div>
+
+      <div id="checking-state" class="state">
+        <h1 class="title">Секундочку</h1>
+        <p class="subtitle">Проверяем доступность<br>мини-приложения...</p>
+        <div class="divider"></div>
+        <p class="note">Бот работает с 12:00 до 20:00 по МСК</p>
+      </div>
+
+      <div id="success-state" class="state" hidden>
+        <h1 class="title">Всё в порядке</h1>
+        <p class="subtitle">Через пару секунд<br>перенаправим вас.</p>
+        <button id="open-btn" class="btn" type="button">
+          <img src="star.svg" alt="" class="btn-icon">
+          Перейти в Glint
+        </button>
+        <div class="divider"></div>
+        <p class="note">Если будет страница с кнопкой "Visit Share" – просто нажмите на эту кнопку.</p>
+      </div>
+
+      <div id="error-state" class="state" hidden>
+        <h1 class="title">Ой!</h1>
+        <p class="subtitle">Мини-приложение<br>сейчас недоступно.</p>
+        <div class="divider"></div>
+        <p class="note">Бот работает с 12:00 до 20:00 по МСК</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const ZROK_URL = "https://glint.share.zrok.io";
+    const REDIRECT_DELAY_MS = 3000;
+    const MIN_CHECKING_TIME_MS = 2000;
+    const SERVER_URL = "http://178.91.99.9:8080";
+
+    const checkingState = document.getElementById("checking-state");
+    const successState = document.getElementById("success-state");
+    const errorState = document.getElementById("error-state");
+    const openBtn = document.getElementById("open-btn");
+
+    const startTime = Date.now();
+    let responseReceived = false;
+
+    const showState = (state) => {
+      checkingState.setAttribute('hidden', '');
+      successState.setAttribute('hidden', '');
+      errorState.setAttribute('hidden', '');
+      state.removeAttribute('hidden');
+    };
+
+    const showSuccess = () => {
+      const elapsed = Date.now() - startTime;
+      const remainingTime = Math.max(0, MIN_CHECKING_TIME_MS - elapsed);
+
+      setTimeout(() => {
+        showState(successState);
+        openBtn.focus({ preventScroll: true });
+
+        setTimeout(() => {
+          window.location.href = ZROK_URL;
+        }, REDIRECT_DELAY_MS);
+      }, remainingTime);
+    };
+
+    const showError = () => {
+      if (responseReceived) return;
+      
+      const elapsed = Date.now() - startTime;
+      const remainingTime = Math.max(0, MIN_CHECKING_TIME_MS - elapsed);
+
+      setTimeout(() => {
+        showState(errorState);
+      }, remainingTime);
+    };
+
+    const failover = setTimeout(() => {
+      responseReceived = true;
+      showError();
+    }, 5000);
+
+    fetch(SERVER_URL + '/health') // <-- Убрали { mode: 'no-cors' }
+      .then(response => {
+        // Проверяем, вернул ли сервер успешный статус (200-299)
+        if (response.ok) { 
+            if (!responseReceived) {
+                responseReceived = true;
+                clearTimeout(failover);
+                showSuccess();
+            }
+        } else {
+            // Сервер доступен, но вернул ошибку (4xx, 5xx)
+            throw new Error(`Server status: ${response.status}`);
+        }
+      })
+      .catch(error => {
+        // Ошибка сети, CORS-блокировка или выброшенная ошибка статуса
+        console.error("Health check failed:", error); 
+        if (!responseReceived) {
+          responseReceived = true;
+          clearTimeout(failover);
+          showError();
+        }
+      });
+      
+    openBtn.addEventListener("click", () => {
+      // Убедитесь, что перенаправление ведет куда нужно (возможно, на SERVER_URL, а не ZROK_URL)
+      window.location.href = SERVER_URL; 
+    });
+  </script>
+</body>
+</html>
